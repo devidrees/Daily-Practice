@@ -1,120 +1,135 @@
 import 'package:flutter/material.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
   @override
   Widget build(BuildContext context) {
+    // Get the current theme for color consistency
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Koshur Kalaam', style: TextStyle(fontFamily: 'Playfair Display', fontSize: 24)),
-        backgroundColor: const Color(0xFF2F4F4F),
+        title: Text(
+          'Koshur Kalaam',
+          style: theme.textTheme.headlineMedium, // Use theme text style for the title
+        ),
+        backgroundColor: theme.colorScheme.primary, // Use primary color from theme
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
+            icon: Icon(Icons.account_circle, color: theme.colorScheme.onPrimary), // Icon color from theme
             onPressed: () {
-              // Profile action
+              // Profile screen logic
             },
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Kalaam of the Day Banner
-          Container(
-            margin: const EdgeInsets.all(10.0),
-            padding: const EdgeInsets.all(15.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2F4F4F),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Kalaam of the Day',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Kalaam of the day (Scrollable Banner)
+            Container(
+              height: 200,
+              color: theme.colorScheme.primary, // Use primary color
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  width: 600,
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    "“Raat bhar ka chand hai, aur kuch nahi, \nSaath tera tha, aur kuch nahi.”\n- Unknown",
+                    style: theme.textTheme.displayLarge?.copyWith(color: Colors.white), // Text style from theme
+                  ),
+                ),
               ),
             ),
-          ),
+            SizedBox(height: 20),
 
-          // Recently Interacted Row
-          SizedBox(
-            height: 100.0,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: List.generate(5, (index) {
-                return Container(
-                  width: 80.0,
-                  margin: const EdgeInsets.symmetric(horizontal: 10.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Feature ${index + 1}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF2F4F4F),
-                        fontSize: 14,
-                      ),
+            // Recently Interacted Section (Scrollable Row of Boxes)
+            Container(
+              height: 150,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Container(
+                      width: 100,
+                      color: theme.colorScheme.secondary, // Use secondary color from theme
+                      child: Center(child: Icon(Icons.book, color: Colors.white)),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
             ),
-          ),
+            SizedBox(height: 30),
 
-          // Divider for sections
-          Divider(
-            thickness: 1,
-            color: Colors.grey[300],
-            height: 30,
-          ),
-
-          // Feature Grid
-          Expanded(
-            child: GridView.count(
-              padding: const EdgeInsets.all(10),
+            // Features of the app section with buttons
+            GridView.count(
+              shrinkWrap: true,
               crossAxisCount: 3,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
+              padding: EdgeInsets.all(10),
               children: [
-                _buildFeatureTile(Icons.history, 'Last Read'),
-                _buildFeatureTile(Icons.book, 'Poems'),
-                _buildFeatureTile(Icons.person, 'Poets'),
-                _buildFeatureTile(Icons.menu_book, 'Books'),
-                _buildFeatureTile(Icons.music_note, 'Songs'),
-                _buildFeatureTile(Icons.translate, 'Dictionary'),
-                _buildFeatureTile(Icons.language, 'Language'),
+                _buildFeatureBox(Icons.book, 'Last Read', theme),
+                _buildFeatureBox(Icons.bookmark, 'Poems', theme),
+                _buildFeatureBox(Icons.person, 'Poets', theme),
+                _buildFeatureBox(Icons.library_books, 'Books', theme),
+                _buildFeatureBox(Icons.music_note, 'Songs', theme),
+                _buildFeatureBox(Icons.translate, 'Dictionary', theme),
+                _buildFeatureBox(Icons.language, 'Language', theme),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF2F4F4F),
-        selectedItemColor: const Color(0xFFD4AF37),
-        unselectedItemColor: Colors.white,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        backgroundColor: theme.colorScheme.primary, // Bottom navigation bar color
+        selectedItemColor: theme.colorScheme.onPrimary, // Selected item color
+        unselectedItemColor: theme.colorScheme.onSurface, // Unselected item color
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle),
+            label: 'Profile',
+          ),
         ],
       ),
     );
   }
 
-  // Helper Widget for Feature Tiles
-  Widget _buildFeatureTile(IconData icon, String label) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: const Color(0xFF2F4F4F), size: 30),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(color: Color(0xFF2F4F4F))),
-      ],
+  // Helper function to create feature buttons with theme consistency
+  Widget _buildFeatureBox(IconData icon, String label, ThemeData theme) {
+    return GestureDetector(
+      onTap: () {
+        // Handle navigation or functionality
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondary, // Use secondary color from theme
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 30, color: Colors.white),
+            SizedBox(height: 5),
+            Text(
+              label,
+              style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white), // Use theme text style
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
