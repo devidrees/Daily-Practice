@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Koshur Kalaam', style: TextStyle(fontFamily: 'Playfair Display', fontSize: 24)),
-        backgroundColor: Color(0xFF2F4F4F),
+        title: const Text('Koshur Kalaam', style: TextStyle(fontFamily: 'Playfair Display', fontSize: 24)),
+        backgroundColor: const Color(0xFF2F4F4F),
         actions: [
           IconButton(
-            icon: Icon(Icons.person),
+            icon: const Icon(Icons.person),
             onPressed: () {
               // Profile action
             },
@@ -20,13 +22,13 @@ class HomePage extends StatelessWidget {
         children: [
           // Kalaam of the Day Banner
           Container(
-            margin: EdgeInsets.all(10.0),
-            padding: EdgeInsets.all(15.0),
+            margin: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(15.0),
             decoration: BoxDecoration(
-              color: Color(0xFF2F4F4F),
+              color: const Color(0xFF2F4F4F),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
+            child: const Text(
               'Kalaam of the Day',
               style: TextStyle(
                 color: Colors.white,
@@ -37,23 +39,23 @@ class HomePage extends StatelessWidget {
           ),
 
           // Recently Interacted Row
-          Container(
+          SizedBox(
             height: 100.0,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: List.generate(5, (index) {
                 return Container(
                   width: 80.0,
-                  margin: EdgeInsets.symmetric(horizontal: 10.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 10.0),
                   decoration: BoxDecoration(
-                    color: Color(0xFFD4AF37),
+                    color: const Color(0xFFD4AF37),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
                     child: Text(
                       'Feature ${index + 1}',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFF2F4F4F),
                         fontSize: 14,
                       ),
@@ -74,7 +76,7 @@ class HomePage extends StatelessWidget {
           // Feature Grid
           Expanded(
             child: GridView.count(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               crossAxisCount: 3,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
@@ -92,10 +94,10 @@ class HomePage extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color(0xFF2F4F4F),
-        selectedItemColor: Color(0xFFD4AF37),
+        backgroundColor: const Color(0xFF2F4F4F),
+        selectedItemColor: const Color(0xFFD4AF37),
         unselectedItemColor: Colors.white,
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
@@ -109,9 +111,9 @@ class HomePage extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, color: Color(0xFF2F4F4F), size: 30),
-        SizedBox(height: 5),
-        Text(label, style: TextStyle(color: Color(0xFF2F4F4F))),
+        Icon(icon, color: const Color(0xFF2F4F4F), size: 30),
+        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(color: Color(0xFF2F4F4F))),
       ],
     );
   }
