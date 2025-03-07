@@ -1,259 +1,136 @@
+import os
 import tkinter as tk
 from tkinter import ttk
-from openpyxl import Workbook, load_workbook
 from datetime import datetime, timedelta
+import pandas as pd
 from PIL import Image, ImageTk
 
-# Data storage in memory
-time_records = []
+# Data storage
+records = []
+last_in_time = None
+window_size_index = 0
+window_sizes = [(400, 300), (600, 400), (800, 600)]
 
-# Function to calculate duration
-def calculate_duration(time_in, time_out):
-    duration = time_out - time_in
-    hours, remainder = divmod(duration.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{hours:02}:{minutes:02}:{seconds:02}"
+# File paths
+SAVE_FILE = "time_tracker.xlsx"
+EXPORT_FILE_BASE = "time_tracker_export"
 
-# Function to handle IN button click
-def time_in():
-    global start_time, timer_running
-    if timer_running:
-        return  # Prevent multiple IN clicks
-    start_time = datetime.now()
-    timer_running = True
-    time_records.append({"Date": start_time.date(), "Time In": start_time.time(), "Time Out": None, "Time Spent": None})
-    update_timer()
-    in_button.config(style="Green.TButton", state=tk.DISABLED)
-    out_button.config(style="Light.TButton", state=tk.NORMAL)
-    status_label.config(text=f"Time In recorded at {start_time.strftime('%H:%M:%S')}")
+# Create main application window
+root = tk.Tk()
+root.title("Time Tracker")
+root.geometry("800x600")
+root.configure(bg="#f0f0f0")
 
-# Function to handle OUT button click
-def time_out():
-    global timer_running
-    if not timer_running:
-        status_label.config(text="You must clock IN first!")
+# Function to update live timer
+def update_live_timer():
+    if last_in_time:
+        elapsed_time = datetime.now() - last_in_time
+        lbl_live_timer.config(text=f"Elapsed: {str(elapsed_time).split('.')[0]}")
+        root.after(1000, update_live_timer)
+
+# Function to record IN time
+def mark_in():
+    global last_in_time
+    if last_in_time:
         return
-    end_time = datetime.now()
-    duration = calculate_duration(start_time, end_time)
-    time_records[-1]["Time Out"] = end_time.time()
-    time_records[-1]["Time Spent"] = duration
-    timer_running = False
-    last_time_out_label.config(text=f"Last Time Out: {end_time.strftime('%H:%M:%S')}")
-    last_spent_time_label.config(text=f"Last Spent Time: {duration}")
-    out_button.config(style="Red.TButton", state=tk.DISABLED)
-    in_button.config(style="Light.TButton", state=tk.NORMAL)
-    status_label.config(text=f"Time Out recorded at {end_time.strftime('%H:%M:%S')}")
-    update_history()
+    last_in_time = datetime.now()
+    lbl_status.config(text=f"IN: {last_in_time.strftime('%H:%M:%S')}", fg="green")
+    btn_in.config(bg="green", fg="white", state="disabled", relief="sunken")
+    btn_out.config(state="normal")
+    update_live_timer()
 
-# Function to update the live IN timer
-def update_timer():
-    if timer_running:
-        elapsed_time = datetime.now() - start_time
-        hours, remainder = divmod(elapsed_time.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        live_timer_label.config(text=f"Live IN Timer: {hours:02}:{minutes:02}:{seconds:02}")
-        root.after(1000, update_timer)  # Update every second
+# Function to record OUT time
+def mark_out():
+    global last_in_time
+    if not last_in_time:
+        return
+    time_out = datetime.now()
+    total_time = time_out - last_in_time
+    records.append({
+        "Date": last_in_time.strftime('%Y-%m-%d'),
+        "Time In": last_in_time.strftime('%H:%M:%S'),
+        "Time Out": time_out.strftime('%H:%M:%S'),
+        "Time Spent": str(total_time).split('.')[0]
+    })
+    lbl_status.config(text=f"OUT: {time_out.strftime('%H:%M:%S')}", fg="blue")
+    btn_in.config(bg="#2196F3", fg="black", state="normal", relief="raised")
+    btn_out.config(bg="red", fg="white", state="disabled", relief="sunken")
+    last_in_time = None
 
 # Function to save data to Excel
 def save_data():
-    if not time_records or not time_records[-1]["Time Out"]:
-        status_label.config(text="You must clock OUT first!")
+    if not records:
+        lbl_status.config(text="No data to save!", fg="red")
         return
-    try:
-        wb = load_workbook('time_tracker.xlsx')
-        ws = wb.active
-    except FileNotFoundError:
-        wb = Workbook()
-        ws = wb.active
-        ws.append(['Date', 'Time In', 'Time Out', 'Time Spent'])
-    
-    # Insert new row before the last total row
-    last_row = ws.max_row
-    if ws.cell(row=last_row, column=1).value == "Total Time:":
-        last_row -= 1
-    
-    for record in time_records:
-        ws.insert_rows(last_row)
-        ws.cell(row=last_row, column=1, value=record['Date'])
-        ws.cell(row=last_row, column=2, value=record['Time In'])
-        ws.cell(row=last_row, column=3, value=record['Time Out'])
-        ws.cell(row=last_row, column=4, value=record['Time Spent'])
-        last_row += 1
-    
-    # Calculate total time
-    total_seconds = 0
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row - 1, values_only=True):
-        if row[3]:  # Time Spent
-            try:
-                h, m, s = map(int, row[3].split(':'))  # Ensure HH:MM:SS format
-                total_seconds += h * 3600 + m * 60 + s
-            except ValueError:
-                # Handle invalid time format (e.g., decimal values)
-                pass
-    
-    total_time = f"{total_seconds // 3600:02}:{(total_seconds % 3600) // 60:02}:{total_seconds % 60:02}"
-    
-    # Update or add the total time row
-    if ws.cell(row=ws.max_row, column=1).value == "Total Time:":
-        ws.cell(row=ws.max_row, column=4, value=total_time)
-    else:
-        ws.append(['Total Time:', '', '', total_time])
-    
-    wb.save('time_tracker.xlsx')
-    status_label.config(text="Data saved to time_tracker.xlsx!")
-    update_history()
+    df = pd.DataFrame(records)
+    if os.path.exists(SAVE_FILE):
+        existing_df = pd.read_excel(SAVE_FILE)
+        df = pd.concat([existing_df, df], ignore_index=True)
+    total_hours = sum(pd.to_timedelta(df["Time Spent"]).dt.total_seconds()) / 3600
+    df.loc[len(df)] = ["TOTAL", "", "", f"{round(total_hours, 2)} hrs"]
+    df.to_excel(SAVE_FILE, index=False)
+    lbl_status.config(text="Data saved successfully!", fg="blue")
 
-# Function to export data to Excel
+# Function to export data to a new Excel file
 def export_data():
-    if not time_records:
-        status_label.config(text="No data to export!")
+    if not records:
+        lbl_status.config(text="No data to export!", fg="red")
         return
-    
-    # Generate a unique file name
-    file_name = 'time_tracker_export.xlsx'
+    export_file = EXPORT_FILE_BASE + ".xlsx"
     counter = 1
-    while True:
-        try:
-            with open(file_name, 'r'):
-                pass
-            file_name = f'time_tracker_export_{counter}.xlsx'
-            counter += 1
-        except FileNotFoundError:
-            break
-    
-    wb = Workbook()
-    ws = wb.active
-    ws.append(['Date', 'Time In', 'Time Out', 'Time Spent'])
-    total_seconds = 0
-    for record in time_records:
-        ws.append([record['Date'], record['Time In'], record['Time Out'], record['Time Spent']])
-        if record['Time Spent']:
-            try:
-                h, m, s = map(int, record['Time Spent'].split(':'))  # Ensure HH:MM:SS format
-                total_seconds += h * 3600 + m * 60 + s
-            except ValueError:
-                # Handle invalid time format (e.g., decimal values)
-                pass
-    total_time = f"{total_seconds // 3600:02}:{(total_seconds % 3600) // 60:02}:{total_seconds % 60:02}"
-    ws.append(['Total Time:', '', '', total_time])
-    wb.save(file_name)
-    status_label.config(text=f"Data exported to {file_name}!")
+    while os.path.exists(export_file):
+        export_file = f"{EXPORT_FILE_BASE}_{counter}.xlsx"
+        counter += 1
+    df = pd.DataFrame(records)
+    df.to_excel(export_file, index=False)
+    lbl_status.config(text=f"Data exported to {export_file}", fg="blue")
 
-# Function to update the history table
-def update_history():
-    for row in history_tree.get_children():
-        history_tree.delete(row)
-    for record in time_records:
-        history_tree.insert("", "end", values=(record['Date'], record['Time In'], record['Time Out'], record['Time Spent']))
+# Function to toggle window size
+def toggle_size():
+    global window_size_index
+    window_size_index = (window_size_index + 1) % len(window_sizes)
+    new_size = window_sizes[window_size_index]
+    root.geometry(f"{new_size[0]}x{new_size[1]}")
 
-# Function to show history
-def show_history():
-    home_frame.pack_forget()
-    history_frame.pack(fill=tk.BOTH, expand=True)
+# Resize button
+btn_resize = tk.Button(root, text="Resize", command=toggle_size, font=("Arial", 10), bg="#D3D3D3", relief="raised", bd=2)
+btn_resize.pack(anchor="ne", padx=10, pady=5)
 
-# Function to show home
-def show_home():
-    history_frame.pack_forget()
-    home_frame.pack(fill=tk.BOTH, expand=True)
+# UI Elements
+frame_buttons = tk.Frame(root, bg="#f0f0f0")
+frame_buttons.pack(fill=tk.X, padx=10, pady=5)
 
-# Function to set window size
-def set_window_size(size):
-    if size == "large":
-        root.geometry("800x600")
-    elif size == "medium":
-        root.geometry("600x400")
-    elif size == "small":
-        root.geometry("400x300")
+button_style = {
+    "font": ("Arial", 14, "bold"),
+    "bg": "#2196F3",
+    "fg": "black",
+    "activebackground": "#1976D2",
+    "activeforeground": "white",
+    "bd": 5,
+    "relief": "raised",
+    "highlightthickness": 0,
+    "borderwidth": 2,
+    "padx": 10,
+    "pady": 10,
+    "width": 15
+}
 
-# Create the main window
-root = tk.Tk()
-root.title("Time Tracker")
-root.geometry("800x600")  # Default large size
-root.configure(bg="#f0f0f0")  # Light gray background
-root.resizable(False, False)  # Disable resizing
+btn_in = tk.Button(frame_buttons, text="IN", command=mark_in, **button_style)
+btn_in.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
-# Style configuration
-style = ttk.Style()
-style.theme_use("clam")  # Use a modern theme
+btn_out = tk.Button(frame_buttons, text="OUT", command=mark_out, state="disabled", **button_style)
+btn_out.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=5)
 
-# Button styles
-style.configure("Light.TButton", font=("Segoe UI", 12), background="#ffffff", foreground="#333333", borderwidth=0, bordercolor="#cccccc", focusthickness=3, focuscolor="#cccccc", padding=10, relief="flat", borderradius=20)
-style.map("Light.TButton", background=[("active", "#f0f0f0")])
+lbl_live_timer = tk.Label(root, text="Elapsed: 00:00:00", font=("Arial", 10), fg="gray", bg="#f0f0f0")
+lbl_live_timer.pack()
 
-style.configure("Green.TButton", font=("Segoe UI", 12), background="#4CAF50", foreground="#ffffff", borderwidth=0, bordercolor="#4CAF50", focusthickness=3, focuscolor="#4CAF50", padding=10, relief="flat", borderradius=20)
-style.map("Green.TButton", background=[("active", "#45a049")])
+btn_save = tk.Button(root, text="Save", command=save_data, **button_style)
+btn_save.pack(fill=tk.X, padx=20, pady=5)
 
-style.configure("Red.TButton", font=("Segoe UI", 12), background="#F44336", foreground="#ffffff", borderwidth=0, bordercolor="#F44336", focusthickness=3, focuscolor="#F44336", padding=10, relief="flat", borderradius=20)
-style.map("Red.TButton", background=[("active", "#e53935")])
+btn_export = tk.Button(root, text="Export", command=export_data, **button_style)
+btn_export.pack(fill=tk.X, padx=20, pady=5)
 
-# Home frame
-home_frame = ttk.Frame(root)
-home_frame.pack(fill=tk.BOTH, expand=True)
+lbl_status = tk.Label(root, text="Click IN to Start", font=("Arial", 12), bg="#f0f0f0")
+lbl_status.pack(pady=5)
 
-# Image at the top
-image = Image.open("logo.png")  # Replace with your image path
-image = image.resize((150, 150), Image.ANTIALIAS)
-logo = ImageTk.PhotoImage(image)
-logo_label = ttk.Label(home_frame, image=logo)
-logo_label.pack(pady=10)
-
-# Top section: IN and OUT buttons
-top_frame = ttk.Frame(home_frame)
-top_frame.pack(fill=tk.X, pady=10)
-
-in_button = ttk.Button(top_frame, text="IN", command=time_in, style="Light.TButton")
-in_button.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10)
-
-out_button = ttk.Button(top_frame, text="OUT", command=time_out, style="Light.TButton")
-out_button.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10)
-
-# Second section: Labels
-label_frame = ttk.Frame(home_frame)
-label_frame.pack(fill=tk.X, pady=10)
-
-live_timer_label = ttk.Label(label_frame, text="Live IN Timer: 00:00:00", font=("Segoe UI", 12), background="#f0f0f0", foreground="#333333")
-live_timer_label.pack(pady=5)
-
-last_time_out_label = ttk.Label(label_frame, text="Last Time Out: None", font=("Segoe UI", 12), background="#f0f0f0", foreground="#333333")
-last_time_out_label.pack(pady=5)
-
-last_spent_time_label = ttk.Label(label_frame, text="Last Spent Time: None", font=("Segoe UI", 12), background="#f0f0f0", foreground="#333333")
-last_spent_time_label.pack(pady=5)
-
-status_label = ttk.Label(label_frame, text="Ready", font=("Segoe UI", 12), background="#f0f0f0", foreground="#333333")
-status_label.pack(pady=10)
-
-# Third section: Save, Export, and History
-third_frame = ttk.Frame(home_frame)
-third_frame.pack(fill=tk.X, pady=10)
-
-save_button = ttk.Button(third_frame, text="Save", command=save_data, style="Light.TButton")
-save_button.pack(side=tk.LEFT, pady=10, padx=20, fill=tk.X, expand=True)
-
-export_link = ttk.Label(third_frame, text="Export", font=("Segoe UI", 12), foreground="blue", cursor="hand2")
-export_link.pack(side=tk.LEFT, pady=10, padx=20, fill=tk.X, expand=True)
-export_link.bind("<Button-1>", lambda e: export_data())
-
-history_link = ttk.Label(third_frame, text="History", font=("Segoe UI", 12), foreground="blue", cursor="hand2")
-history_link.pack(side=tk.LEFT, pady=10, padx=20, fill=tk.X, expand=True)
-history_link.bind("<Button-1>", lambda e: show_history())
-
-# History frame
-history_frame = ttk.Frame(root)
-
-history_tree = ttk.Treeview(history_frame, columns=("Date", "Time In", "Time Out", "Time Spent"), show="headings")
-history_tree.heading("Date", text="Date")
-history_tree.heading("Time In", text="Time In")
-history_tree.heading("Time Out", text="Time Out")
-history_tree.heading("Time Spent", text="Time Spent")
-history_tree.pack(fill=tk.BOTH, expand=True)
-
-back_button = ttk.Button(history_frame, text="Back", command=show_home, style="Light.TButton")
-back_button.pack(side=tk.BOTTOM, pady=10, fill=tk.X, padx=20)
-
-# Initialize variables
-start_time = None
-timer_running = False
-
-# Run the application
 root.mainloop()
