@@ -1,0 +1,6 @@
+{
+    "update_file": "work_log.xlsx",
+    "export_file": "work_log_export",
+    "export_format": "xlsx",
+    "theme": "arc"
+} 
